@@ -15,7 +15,7 @@ export function AddMovementDialog({ isOpen, onOpenChange }) {
     date: new Date().toISOString().split('T')[0],
     concept: "",
     type: "expense",
-    category: "",
+    category: "Eventos",
     amount: "",
     responsible: "",
     notes: "",
@@ -37,7 +37,7 @@ export function AddMovementDialog({ isOpen, onOpenChange }) {
           date: new Date().toISOString().split('T')[0],
           concept: "",
           type: "expense",
-          category: "",
+          category: "Eventos",
           amount: "",
           responsible: "",
           notes: "",
@@ -68,7 +68,14 @@ export function AddMovementDialog({ isOpen, onOpenChange }) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label className="text-sm font-medium text-[#8D8271] mb-2 block">Tipo</Label>
-              <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value, category: "" })}>
+              <Select
+                value={formData.type}
+                onValueChange={(value) => setFormData({
+                  ...formData,
+                  type: value,
+                  category: categories[value][0],
+                })}
+              >
                 <SelectTrigger className="rounded-full border-[#EBE5D9]">
                   <SelectValue />
                 </SelectTrigger>

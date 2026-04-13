@@ -2,9 +2,11 @@ import * as React from "react"
 import { Eye, EyeOff, Bell, User, Plus } from "lucide-react"
 import { Button } from "../components/ui/button"
 import { CalendarEvents } from "../components/dashboard/calendar-events"
+import { AddEventDialog } from "../components/dashboard/add-event-dialog"
 
 export default function Calendario() {
   const [isPrivate, setIsPrivate] = React.useState(true)
+  const [isEventOpen, setIsEventOpen] = React.useState(false)
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] text-slate-900 font-sans">
@@ -55,13 +57,14 @@ export default function Calendario() {
             <h2 className="text-3xl font-bold tracking-tight text-[#3D3325] mb-2">Calendario</h2>
             <p className="text-[#8D8271]">Planificación de eventos, fechas de corte y reuniones importantes.</p>
           </div>
-          <Button className="shadow-lg shadow-[#800020]/20 rounded-full gap-2">
+          <Button onClick={() => setIsEventOpen(true)} className="shadow-lg shadow-[#800020]/20 rounded-full gap-2">
             <Plus className="w-4 h-4" />
             Nuevo Evento
           </Button>
         </header>
 
         <CalendarEvents />
+        <AddEventDialog isOpen={isEventOpen} onOpenChange={setIsEventOpen} />
       </main>
     </div>
   )

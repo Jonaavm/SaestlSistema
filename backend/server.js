@@ -1,72 +1,25 @@
 import { createServer } from 'node:http'
-import { readFileSync, writeFileSync, existsSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
+import { getEvents, getMovements, insertEvent, insertMovement } from './database.js'
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
-const DATA_FILE = join(__dirname, 'data.json')
 const PORT = process.env.PORT || 3001
-
 const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
-
-const seedData = {
-  movements: [
-    { id: 1, date: '2026-01-08', concept: 'Cuota anual miembros', type: 'income', category: 'Cuotas', amount: 12000, responsible: 'Tesorera', notes: '', status: 'completed' },
-    { id: 2, date: '2026-01-18', concept: 'Papelería oficina', type: 'expense', category: 'Papelería', amount: 950, responsible: 'Administración', notes: '', status: 'completed' },
-    { id: 3, date: '2026-02-05', concept: 'Venta de mercancía', type: 'income', category: 'Ventas', amount: 6200, responsible: 'Tesorera', notes: '', status: 'completed' },
-    { id: 4, date: '2026-02-15', concept: 'Evento bienvenida', type: 'expense', category: 'Eventos', amount: 3800, responsible: 'Coordinación', notes: '', status: 'completed' },
-    { id: 5, date: '2026-03-01', concept: 'Inscripciones semestre', type: 'income', category: 'Inscripciones', amount: 25000, responsible: 'Tesorera', notes: '', status: 'completed' },
-    { id: 6, date: '2026-03-12', concept: 'Servicio de diseño', type: 'expense', category: 'Servicios', amount: 2200, responsible: 'Marketing', notes: '', status: 'completed' },
-    { id: 7, date: '2026-03-20', concept: 'Donación patrocinador', type: 'income', category: 'Donaciones', amount: 15000, responsible: 'Presidencia', notes: '', status: 'completed' },
-    { id: 8, date: '2026-04-02', concept: 'Pago proveedores evento', type: 'expense', category: 'Eventos', amount: 5400, responsible: 'Coordinación', notes: '', status: 'completed' },
-    { id: 9, date: '2026-04-04', concept: 'Venta boletos', type: 'income', category: 'Ventas', amount: 8400, responsible: 'Tesorera', notes: '', status: 'completed' },
-  ],
-}
-
-function ensureDataFile() {
-  if (!existsSync(DATA_FILE)) {
-    writeFileSync(DATA_FILE, JSON.stringify(seedData, null, 2), 'utf8')
-  }
-}
-
-function loadData() {
-  ensureDataFile()
-  const raw = readFileSync(DATA_FILE, 'utf8')
-  const parsed = JSON.parse(raw)
-  return {
-    movements: Array.isArray(parsed.movements) ? parsed.movements : [],
-  }
-}
-
-function saveData(data) {
-  writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8')
-}
 
 function parseDate(dateString) {
   const date = new Date(dateString)
   return Number.isNaN(date.getTime()) ? null : date
 }
 
-function moneyFormatter(amount) {
-  return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(amount)
-}
-
-function monthKey(dateString) {
-  const date = parseDate(dateString)
-  if (!date) return 'invalid'
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-}
-
-function buildOverview(movements) {
+function buildOverview(movements, events = []) {
   const sorted = [...movements].sort((a, b) => new Date(b.date) - new Date(a.date))
   const now = new Date()
   const currentMonth = now.getMonth()
   const currentYear = now.getFullYear()
+
   const currentMonthMovements = movements.filter((movement) => {
     const movementDate = parseDate(movement.date)
     return movementDate && movementDate.getMonth() === currentMonth && movementDate.getFullYear() === currentYear
   })
+
   const previousMonthMovements = movements.filter((movement) => {
     const movementDate = parseDate(movement.date)
     if (!movementDate) return false
@@ -74,7 +27,10 @@ function buildOverview(movements) {
     return movementDate.getMonth() === previous.getMonth() && movementDate.getFullYear() === previous.getFullYear()
   })
 
-  const sumByType = (list, type) => list.filter((item) => item.type === type).reduce((sum, item) => sum + Number(item.amount || 0), 0)
+  const sumByType = (list, type) => list
+    .filter((item) => item.type === type)
+    .reduce((sum, item) => sum + Number(item.amount || 0), 0)
+
   const totalIncome = sumByType(movements, 'income')
   const totalExpense = sumByType(movements, 'expense')
   const currentIncome = sumByType(currentMonthMovements, 'income')
@@ -92,6 +48,7 @@ function buildOverview(movements) {
       const date = parseDate(movement.date)
       return date && date.getMonth() === index
     }), 'income')
+
     const expense = sumByType(movements.filter((movement) => {
       const date = parseDate(movement.date)
       return date && date.getMonth() === index
@@ -111,30 +68,73 @@ function buildOverview(movements) {
       const key = movement[field] || 'Otros'
       map.set(key, (map.get(key) || 0) + Number(movement.amount || 0))
     })
+
     return [...map.entries()]
       .sort((a, b) => b[1] - a[1])
       .map(([name, value]) => ({ name, value }))
   }
 
-  const calendarEvents = sorted.slice(0, 15).map((movement) => {
-    const date = parseDate(movement.date)
-    return {
-      id: movement.id,
-      date: date ? date.getDate() : null,
-      title: movement.concept,
-      type: movement.type,
-      time: '—',
-      responsible: movement.responsible || '—',
-      amount: movement.amount,
-      category: movement.category,
-    }
-  }).filter((event) => event.date !== null)
+  const movementEvents = sorted
+    .slice(0, 15)
+    .map((movement) => {
+      const date = parseDate(movement.date)
+      return {
+        id: `m-${movement.id}`,
+        dateISO: movement.date,
+        date: date ? date.getDate() : null,
+        title: movement.concept,
+        type: movement.type,
+        time: '—',
+        responsible: movement.responsible || '—',
+        amount: movement.amount,
+        category: movement.category,
+      }
+    })
+    .filter((event) => event.date !== null)
+
+  const customEvents = events
+    .map((eventItem) => {
+      const date = parseDate(eventItem.date)
+      return {
+        id: `e-${eventItem.id}`,
+        dateISO: eventItem.date,
+        date: date ? date.getDate() : null,
+        title: eventItem.title,
+        type: eventItem.type || 'event',
+        time: eventItem.time || '—',
+        location: eventItem.location || '',
+        responsible: eventItem.responsible || '—',
+      }
+    })
+    .filter((event) => event.date !== null)
+
+  const calendarEvents = [...customEvents, ...movementEvents].sort((a, b) => {
+    const aDate = parseDate(a.dateISO)
+    const bDate = parseDate(b.dateISO)
+    if (!aDate || !bDate) return 0
+    return aDate - bDate
+  })
 
   return {
     kpis: [
-      { title: 'Balance Total', amount: totalIncome - totalExpense, trend: percentChange(currentIncome - currentExpense, (previousIncome - previousExpense)), type: 'balance' },
-      { title: 'Ingresos (Mes)', amount: currentIncome, trend: percentChange(currentIncome, previousIncome), type: 'income' },
-      { title: 'Egresos (Mes)', amount: currentExpense, trend: percentChange(currentExpense, previousExpense), type: 'expense' },
+      {
+        title: 'Balance Total',
+        amount: totalIncome - totalExpense,
+        trend: percentChange(currentIncome - currentExpense, previousIncome - previousExpense),
+        type: 'balance',
+      },
+      {
+        title: 'Ingresos (Mes)',
+        amount: currentIncome,
+        trend: percentChange(currentIncome, previousIncome),
+        type: 'income',
+      },
+      {
+        title: 'Egresos (Mes)',
+        amount: currentExpense,
+        trend: percentChange(currentExpense, previousExpense),
+        type: 'expense',
+      },
     ],
     monthlyData,
     expensesByCategory: aggregateBy('category').filter((item) => movements.find((movement) => movement.category === item.name && movement.type === 'expense')),
@@ -195,19 +195,19 @@ createServer(async (req, res) => {
   }
 
   if (req.url === '/api/health') {
-    sendJson(res, 200, { ok: true })
+    sendJson(res, 200, { ok: true, db: 'sqlite' })
     return
   }
 
   if (req.url === '/api/overview' && req.method === 'GET') {
-    const data = loadData()
-    sendJson(res, 200, buildOverview(data.movements))
+    const movements = getMovements()
+    const events = getEvents()
+    sendJson(res, 200, buildOverview(movements, events))
     return
   }
 
   if (req.url === '/api/movements' && req.method === 'GET') {
-    const data = loadData()
-    sendJson(res, 200, { movements: [...data.movements].sort((a, b) => new Date(b.date) - new Date(a.date)) })
+    sendJson(res, 200, { movements: getMovements() })
     return
   }
 
@@ -227,7 +227,7 @@ createServer(async (req, res) => {
       const amount = Number(payload.amount)
 
       if (!date) {
-        sendJson(res, 400, { error: 'La fecha no es válida' })
+        sendJson(res, 400, { error: 'La fecha no es valida' })
         return
       }
 
@@ -241,9 +241,7 @@ createServer(async (req, res) => {
         return
       }
 
-      const data = loadData()
-      const newMovement = {
-        id: data.movements.length ? Math.max(...data.movements.map((movement) => movement.id)) + 1 : 1,
+      const newMovement = insertMovement({
         date: payload.date,
         concept: String(payload.concept).trim(),
         type: payload.type,
@@ -252,15 +250,12 @@ createServer(async (req, res) => {
         responsible: String(payload.responsible || '').trim(),
         notes: String(payload.notes || '').trim(),
         status: 'completed',
-      }
-
-      data.movements.push(newMovement)
-      saveData(data)
+      })
 
       sendJson(res, 201, {
         message: 'Movimiento registrado correctamente',
         movement: newMovement,
-        overview: buildOverview(data.movements),
+        overview: buildOverview(getMovements(), getEvents()),
       })
     } catch (error) {
       sendJson(res, 400, { error: 'No se pudo guardar el movimiento', details: error.message })
@@ -268,7 +263,57 @@ createServer(async (req, res) => {
     return
   }
 
+  if (req.url === '/api/events' && req.method === 'GET') {
+    sendJson(res, 200, { events: getEvents() })
+    return
+  }
+
+  if (req.url === '/api/events' && req.method === 'POST') {
+    try {
+      const rawBody = await readBody(req)
+      const payload = rawBody ? JSON.parse(rawBody) : {}
+      const required = ['date', 'title', 'type']
+      const missing = required.filter((key) => payload[key] === undefined || payload[key] === null || payload[key] === '')
+
+      if (missing.length > 0) {
+        sendJson(res, 400, { error: `Faltan campos requeridos: ${missing.join(', ')}` })
+        return
+      }
+
+      const date = parseDate(payload.date)
+      const allowedTypes = ['event', 'meeting', 'deadline', 'closing']
+
+      if (!date) {
+        sendJson(res, 400, { error: 'La fecha no es valida' })
+        return
+      }
+
+      if (!allowedTypes.includes(payload.type)) {
+        sendJson(res, 400, { error: 'Tipo de evento no valido' })
+        return
+      }
+
+      const newEvent = insertEvent({
+        date: payload.date,
+        title: String(payload.title).trim(),
+        type: payload.type,
+        time: String(payload.time || '').trim(),
+        location: String(payload.location || '').trim(),
+        responsible: String(payload.responsible || '').trim(),
+      })
+
+      sendJson(res, 201, {
+        message: 'Evento registrado correctamente',
+        event: newEvent,
+        overview: buildOverview(getMovements(), getEvents()),
+      })
+    } catch (error) {
+      sendJson(res, 400, { error: 'No se pudo guardar el evento', details: error.message })
+    }
+    return
+  }
+
   sendJson(res, 404, { error: 'Ruta no encontrada' })
 }).listen(PORT, () => {
-  console.log(`Backend listo en http://localhost:${PORT}`)
+  console.log(`Backend listo en http://localhost:${PORT} (SQLite)`)
 })

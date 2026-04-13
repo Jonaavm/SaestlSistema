@@ -8,7 +8,14 @@ export function CalendarEvents() {
   const { overview } = useFinancialOverview()
   const [currentDate, setCurrentDate] = React.useState(new Date())
 
-  const events = overview?.calendarEvents ?? []
+  const events = React.useMemo(() => {
+    const list = overview?.calendarEvents ?? []
+    return [...list].sort((a, b) => {
+      const aDate = new Date(a.dateISO || `${new Date().getFullYear()}-01-${String(a.date || 1).padStart(2, '0')}`)
+      const bDate = new Date(b.dateISO || `${new Date().getFullYear()}-01-${String(b.date || 1).padStart(2, '0')}`)
+      return aDate - bDate
+    })
+  }, [overview])
 
   const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate()
   const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay()
@@ -26,7 +33,15 @@ export function CalendarEvents() {
     dates.push(i)
   }
 
-  const getEventsForDate = (date) => events.filter(e => e.date === date)
+  const getEventsForDate = (date) => events.filter((eventItem) => {
+    if (eventItem.dateISO) {
+      const parsed = new Date(eventItem.dateISO)
+      return parsed.getDate() === date &&
+        parsed.getMonth() === currentDate.getMonth() &&
+        parsed.getFullYear() === currentDate.getFullYear()
+    }
+    return eventItem.date === date
+  })
 
   const getEventTypeStyles = (type) => {
     switch (type) {
@@ -178,7 +193,7 @@ export function CalendarEvents() {
                   </div>
                 </div>
                 <div className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${getEventTypeColor(event.type)} bg-white/50`}>
-                  {event.date} {currentDate.toLocaleDateString('es-MX', { month: 'short' })}
+                  {event.dateISO ? new Date(event.dateISO).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }) : `${event.date} ${currentDate.toLocaleDateString('es-MX', { month: 'short' })}`}
                 </div>
               </div>
             </div>

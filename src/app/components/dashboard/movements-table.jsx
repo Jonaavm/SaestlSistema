@@ -5,6 +5,7 @@ import { Input } from "../ui/input"
 import { ArrowDownLeft, ArrowUpRight, Search, Download, ChevronUp, ChevronDown } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
 import { useFinancialOverview } from "../../hooks/useFinancialOverview"
+import { buildCsv, downloadTextFile, toIsoDate } from "../../lib/downloadUtils"
 
 export function MovementsTable({ isPrivate }) {
   const { overview } = useFinancialOverview()
@@ -62,6 +63,28 @@ export function MovementsTable({ isPrivate }) {
     return Number.isNaN(parsed.getTime()) ? String(dateString) : parsed.toLocaleDateString('es-MX')
   }
 
+  const handleDownload = () => {
+    const headers = [
+      { key: "date", label: "Fecha" },
+      { key: "type", label: "Tipo" },
+      { key: "category", label: "Categoria" },
+      { key: "concept", label: "Concepto" },
+      { key: "amount", label: "Monto" },
+      { key: "responsible", label: "Responsable" },
+      { key: "status", label: "Estado" },
+    ]
+
+    const rows = filteredMovements.map((movement) => ({
+      ...movement,
+      date: toIsoDate(movement.date),
+      amount: Number(movement.amount || 0).toFixed(2),
+    }))
+
+    const csv = buildCsv(rows, headers)
+    const fileName = `movimientos-${filters.dateFrom || 'inicio'}-${filters.dateTo || 'hoy'}.csv`
+    downloadTextFile(fileName, csv, 'text/csv;charset=utf-8')
+  }
+
   const SortHeader = ({ column, label }) => (
     <div
       className="flex items-center gap-2 cursor-pointer hover:text-[#800020] transition-colors"
@@ -79,7 +102,7 @@ export function MovementsTable({ isPrivate }) {
       <CardHeader className="border-b border-[#EBE5D9] pb-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <CardTitle className="text-[#3D3325] text-lg font-bold">Movimientos Detallados</CardTitle>
-          <Button className="shadow-lg shadow-[#800020]/20 rounded-full gap-2" size="sm">
+          <Button onClick={handleDownload} className="shadow-lg shadow-[#800020]/20 rounded-full gap-2" size="sm">
             <Download className="w-4 h-4" />
             Descargar
           </Button>

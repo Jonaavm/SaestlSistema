@@ -6,6 +6,10 @@ import { ReportsAnalytics } from "../components/dashboard/reports-analytics"
 export default function Reportes() {
   const [isPrivate, setIsPrivate] = React.useState(true)
 
+  const handleGenerateReport = React.useCallback(() => {
+    window.dispatchEvent(new Event('saestl:download-report'))
+  }, [])
+
   return (
     <div className="min-h-screen bg-[#FDFBF7] text-slate-900 font-sans">
       <nav className="sticky top-0 z-50 w-full border-b border-[#EBE5D9]/50 bg-white/80 backdrop-blur-xl">
@@ -55,7 +59,7 @@ export default function Reportes() {
             <h2 className="text-3xl font-bold tracking-tight text-[#3D3325] mb-2">Reportes</h2>
             <p className="text-[#8D8271]">Análisis detallado de ingresos, egresos y tendencias financieras.</p>
           </div>
-          <Button className="shadow-lg shadow-[#800020]/20 rounded-full gap-2">
+          <Button onClick={handleGenerateReport} className="shadow-lg shadow-[#800020]/20 rounded-full gap-2">
             <Download className="w-4 h-4" />
             Generar Reporte
           </Button>

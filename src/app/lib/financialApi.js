@@ -28,3 +28,10 @@ export function createMovement(movement) {
     body: JSON.stringify(movement),
   })
 }
+
+export function createEvent(eventData) {
+  return request('/events', {
+    method: 'POST',
+    body: JSON.stringify(eventData),
+  })
+}

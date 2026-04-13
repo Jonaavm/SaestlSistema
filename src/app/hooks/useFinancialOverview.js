@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { createMovement, getOverview } from '../lib/financialApi'
+import { createEvent, createMovement, getOverview } from '../lib/financialApi'
 
 export function useFinancialOverview() {
   const [overview, setOverview] = React.useState(null)
@@ -35,11 +35,18 @@ export function useFinancialOverview() {
     return response
   }, [])
 
+  const addEvent = React.useCallback(async (eventData) => {
+    const response = await createEvent(eventData)
+    window.dispatchEvent(new Event('saestl:movements-updated'))
+    return response
+  }, [])
+
   return {
     overview,
     loading,
     error,
     refresh,
     addMovement,
+    addEvent,
   }
 }
