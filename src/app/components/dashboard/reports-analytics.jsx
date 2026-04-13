@@ -6,9 +6,13 @@ import { ResponsiveContainer, PieChart, Pie, BarChart, Bar, XAxis, YAxis, Cartes
 import { Calendar, TrendingUp } from "lucide-react"
 import { useFinancialOverview } from "../../hooks/useFinancialOverview"
 import { buildCsv, downloadTextFile, toIsoDate } from "../../lib/downloadUtils"
+import { createBackup, listBackups } from "../../lib/financialApi"
+import { getAuthUser } from "../../lib/auth"
 
 export function ReportsAnalytics({ isPrivate }) {
   const { overview } = useFinancialOverview()
+  const user = getAuthUser()
+  const isAdmin = user?.role === 'admin'
   const [dateRange, setDateRange] = React.useState({
     from: "2026-03-01",
     to: "2026-03-31",
@@ -18,8 +22,11 @@ export function ReportsAnalytics({ isPrivate }) {
     to: "2026-03-31",
   })
   const [rangeError, setRangeError] = React.useState("")
+  const [backups, setBackups] = React.useState([])
+  const [backupMessage, setBackupMessage] = React.useState("")
 
   const allMovements = overview?.detailedMovements ?? []
+  const healthIndicators = overview?.healthIndicators ?? { savingsRate: 0, expenseRatio: 0, runwayMonths: 0, status: 'estable' }
 
   const filteredMovements = React.useMemo(() => {
     return allMovements.filter((movement) => {
@@ -223,6 +230,24 @@ export function ReportsAnalytics({ isPrivate }) {
     return () => window.removeEventListener("saestl:download-report", handleExternalDownload)
   }, [handleDownloadCsv])
 
+  React.useEffect(() => {
+    if (!isAdmin) return
+    listBackups()
+      .then((response) => setBackups(response.backups || []))
+      .catch(() => setBackups([]))
+  }, [isAdmin])
+
+  const handleCreateBackup = async () => {
+    try {
+      const response = await createBackup()
+      setBackupMessage(`Respaldo creado: ${response.backup?.filename || 'ok'}`)
+      const refreshed = await listBackups()
+      setBackups(refreshed.backups || [])
+    } catch (error) {
+      setBackupMessage(error.message || 'No se pudo generar respaldo')
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Selector de rango de fechas */}
@@ -278,6 +303,51 @@ export function ReportsAnalytics({ isPrivate }) {
           </Card>
         ))}
       </div>
+
+      <Card className="bg-white">
+        <CardHeader>
+          <CardTitle className="text-[#3D3325] text-lg font-bold">Indicadores de Salud Financiera</CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          <div className="rounded-2xl bg-[#FAF7F2] p-4">
+            <p className="text-xs text-[#8D8271]">Tasa de ahorro</p>
+            <p className="text-xl font-bold text-[#2E7D32]">{healthIndicators.savingsRate}%</p>
+          </div>
+          <div className="rounded-2xl bg-[#FAF7F2] p-4">
+            <p className="text-xs text-[#8D8271]">Ratio de gasto</p>
+            <p className="text-xl font-bold text-[#800020]">{healthIndicators.expenseRatio}%</p>
+          </div>
+          <div className="rounded-2xl bg-[#FAF7F2] p-4">
+            <p className="text-xs text-[#8D8271]">Meses de cobertura</p>
+            <p className="text-xl font-bold text-[#3D3325]">{healthIndicators.runwayMonths}</p>
+          </div>
+          <div className="rounded-2xl bg-[#FAF7F2] p-4">
+            <p className="text-xs text-[#8D8271]">Estado</p>
+            <p className="text-xl font-bold text-[#D4AF37] capitalize">{healthIndicators.status}</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {isAdmin && (
+        <Card className="bg-white">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-[#3D3325] text-lg font-bold">Respaldos</CardTitle>
+            <Button onClick={handleCreateBackup} className="rounded-full">Generar Respaldo</Button>
+          </CardHeader>
+          <CardContent>
+            {backupMessage && <p className="text-sm text-[#8D8271] mb-3">{backupMessage}</p>}
+            <div className="space-y-2">
+              {backups.length === 0 && <p className="text-sm text-[#8D8271]">Sin respaldos aún</p>}
+              {backups.slice(0, 5).map((backup) => (
+                <div key={backup.filename} className="flex items-center justify-between rounded-xl bg-[#FAF7F2] px-3 py-2 text-sm">
+                  <span>{backup.filename}</span>
+                  <span className="text-[#8D8271]">{Math.round((backup.sizeBytes || 0) / 1024)} KB</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Gráficos principales */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

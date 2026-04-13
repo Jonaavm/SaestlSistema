@@ -1,23 +1,42 @@
 import { Outlet, Link, useLocation } from "react-router"
+import { useNavigate } from "react-router"
 import {
   Home,
   Activity,
   FileText,
   Calendar,
-  Bell,
-  Settings,
-  LogOut
+  LogOut,
+  User
 } from "lucide-react"
+import { clearAuthSession, getAuthToken, getAuthUser } from "../lib/auth"
 
 const menuItems = [
-  { name: "Dashboard", path: "/", icon: Home },
-  { name: "Movimientos", path: "/ingresos", icon: Activity },
-  { name: "Reportes", path: "/reportes", icon: FileText },
-  { name: "Calendario", path: "/calendario", icon: Calendar },
+  { name: "Dashboard", path: "/", icon: Home, roles: ["admin", "tesoreria"] },
+  { name: "Movimientos", path: "/ingresos", icon: Activity, roles: ["admin", "tesoreria"] },
+  { name: "Reportes", path: "/reportes", icon: FileText, roles: ["admin", "tesoreria", "consulta"] },
+  { name: "Calendario", path: "/calendario", icon: Calendar, roles: ["admin"] },
 ]
 
 export function DashboardLayout() {
   const location = useLocation()
+  const navigate = useNavigate()
+  const user = getAuthUser()
+  const visibleMenuItems = menuItems.filter((item) => item.roles.includes(user?.role || 'consulta'))
+
+  const handleLogout = async () => {
+    const token = getAuthToken()
+    if (token) {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }).catch(() => {})
+    }
+
+    clearAuthSession()
+    navigate('/login', { replace: true })
+  }
 
   return (
     <div className="flex h-screen bg-[#F4F0EA] p-4 lg:p-8 gap-6 font-sans text-[#1A1B20] overflow-hidden">
@@ -37,7 +56,7 @@ export function DashboardLayout() {
 
           {/* Nav Items */}
           <nav className="flex flex-col gap-3 w-full items-center">
-            {menuItems.map((item) => {
+            {visibleMenuItems.map((item) => {
               const isActive = location.pathname === item.path
               const Icon = item.icon
 
@@ -56,22 +75,17 @@ export function DashboardLayout() {
                 </Link>
               )
             })}
-
-            <div className="w-8 h-px bg-gray-100 my-2"></div>
-
-            <button className="w-14 h-14 flex items-center justify-center rounded-full text-gray-400 hover:text-[#1A1B20] hover:bg-gray-50 transition-all">
-              <Settings size={22} />
-            </button>
           </nav>
         </div>
 
         {/* Profile Pill */}
         <div className="bg-white rounded-[2rem] p-2 shadow-[0_8px_30px_rgba(0,0,0,0.04)] mt-auto flex flex-col items-center gap-4 py-4">
-          <button className="text-gray-400 hover:text-[#1A1B20] transition-colors">
+          <span className="text-[10px] uppercase tracking-wider text-[#8D8271]">{user?.role || 'consulta'}</span>
+          <button onClick={handleLogout} className="text-gray-400 hover:text-[#1A1B20] transition-colors">
             <LogOut size={20} />
           </button>
-          <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-sm">
-            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="Avatar" className="w-full h-full object-cover" />
+          <div className="w-12 h-12 rounded-full border-2 border-white shadow-sm bg-[#EBE5D9] flex items-center justify-center text-[#8D8271]">
+            <User size={22} />
           </div>
         </div>
       </aside>

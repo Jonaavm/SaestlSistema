@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { createEvent, createMovement, getOverview } from '../lib/financialApi'
+import { createEvent, createMovement, deleteMovement, getOverview, updateMovement } from '../lib/financialApi'
 
 export function useFinancialOverview() {
   const [overview, setOverview] = React.useState(null)
@@ -41,6 +41,18 @@ export function useFinancialOverview() {
     return response
   }, [])
 
+  const editMovement = React.useCallback(async (id, movement) => {
+    const response = await updateMovement(id, movement)
+    window.dispatchEvent(new Event('saestl:movements-updated'))
+    return response
+  }, [])
+
+  const removeMovementById = React.useCallback(async (id) => {
+    const response = await deleteMovement(id)
+    window.dispatchEvent(new Event('saestl:movements-updated'))
+    return response
+  }, [])
+
   return {
     overview,
     loading,
@@ -48,5 +60,7 @@ export function useFinancialOverview() {
     refresh,
     addMovement,
     addEvent,
+    editMovement,
+    removeMovementById,
   }
 }

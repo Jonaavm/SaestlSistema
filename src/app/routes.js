@@ -1,24 +1,24 @@
 import { createBrowserRouter } from "react-router";
-import { createElement } from "react";
-import { DashboardLayout } from "./pages/DashboardLayout";
 import Dashboard from "./pages/Dashboard";
 import Movimiento from "./pages/Mov";
 import Reportes from "./pages/Reportes";
 import Calendario from "./pages/Calendario";
-
-const Placeholder = ({ title }) =>
-  createElement("div", { className: "p-8 text-gray-500" }, title + " (Próximamente)");
+import Login from "./pages/Login";
+import { ProtectedLayout } from "./components/common/ProtectedLayout";
 
 export const router = createBrowserRouter([
   {
+    path: "/login",
+    Component: Login,
+  },
+  {
     path: "/",
-    Component: DashboardLayout,
+    Component: ProtectedLayout,
     children: [
       { index: true, Component: Dashboard },
       { path: "ingresos", Component: Movimiento },
       { path: "reportes", Component: Reportes},
       { path: "calendario", Component: Calendario },
-      { path: "configuracion", Component: () => createElement(Placeholder, { title: "Configuración" }) },
     ],
   },
 ]);

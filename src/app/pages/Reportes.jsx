@@ -1,7 +1,8 @@
 import * as React from "react"
-import { Eye, EyeOff, Bell, User, Download } from "lucide-react"
+import { Eye, EyeOff, User, Download } from "lucide-react"
 import { Button } from "../components/ui/button"
 import { ReportsAnalytics } from "../components/dashboard/reports-analytics"
+import { NotificationBell } from "../components/common/NotificationBell"
 
 export default function Reportes() {
   const [isPrivate, setIsPrivate] = React.useState(true)
@@ -43,9 +44,7 @@ export default function Reportes() {
               {isPrivate ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </Button>
 
-            <Button variant="ghost" size="icon" className="text-[#8D8271] hover:text-[#3D3325] hover:bg-[#FAF7F2] rounded-full">
-              <Bell className="w-5 h-5" />
-            </Button>
+            <NotificationBell />
             <div className="h-9 w-9 rounded-full bg-[#EBE5D9] flex items-center justify-center text-[#8D8271] border-2 border-white shadow-sm cursor-pointer hover:opacity-80 transition-opacity">
               <User className="w-5 h-5" />
             </div>

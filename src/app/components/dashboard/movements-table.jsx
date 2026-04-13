@@ -2,14 +2,19 @@ import * as React from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
 import { Button } from "../ui/button"
 import { Input } from "../ui/input"
-import { ArrowDownLeft, ArrowUpRight, Search, Download, ChevronUp, ChevronDown } from "lucide-react"
+import { ArrowDownLeft, ArrowUpRight, Search, Download, ChevronUp, ChevronDown, Pencil, Trash2, History } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
 import { useFinancialOverview } from "../../hooks/useFinancialOverview"
 import { buildCsv, downloadTextFile, toIsoDate } from "../../lib/downloadUtils"
+import { getMovementAudit } from "../../lib/financialApi"
+import { getAuthUser } from "../../lib/auth"
 
 export function MovementsTable({ isPrivate }) {
-  const { overview } = useFinancialOverview()
+  const { overview, editMovement, removeMovementById } = useFinancialOverview()
   const movements = overview?.detailedMovements ?? []
+  const user = getAuthUser()
+  const canEdit = user?.role === 'admin' || user?.role === 'tesoreria'
+  const canDelete = user?.role === 'admin'
 
   const [filters, setFilters] = React.useState({
     search: "",
@@ -83,6 +88,72 @@ export function MovementsTable({ isPrivate }) {
     const csv = buildCsv(rows, headers)
     const fileName = `movimientos-${filters.dateFrom || 'inicio'}-${filters.dateTo || 'hoy'}.csv`
     downloadTextFile(fileName, csv, 'text/csv;charset=utf-8')
+  }
+
+  const handleEdit = async (movement) => {
+    if (!canEdit) return
+
+    const concept = window.prompt('Concepto', movement.concept)
+    if (concept === null || !concept.trim()) return
+
+    const amountText = window.prompt('Monto', String(movement.amount))
+    if (amountText === null) return
+    const amount = Number(amountText)
+    if (!Number.isFinite(amount) || amount <= 0) {
+      window.alert('Monto invalido')
+      return
+    }
+
+    const category = window.prompt('Categoria', movement.category)
+    if (category === null || !category.trim()) return
+
+    const responsible = window.prompt('Responsable', movement.responsible || '')
+    if (responsible === null) return
+
+    try {
+      await editMovement(movement.id, {
+        concept: concept.trim(),
+        amount,
+        category: category.trim(),
+        responsible: responsible.trim(),
+      })
+      window.alert('Movimiento actualizado')
+    } catch (error) {
+      window.alert(error.message || 'No se pudo actualizar')
+    }
+  }
+
+  const handleDelete = async (movement) => {
+    if (!canDelete) return
+    const approved = window.confirm(`Eliminar movimiento "${movement.concept}"?`)
+    if (!approved) return
+
+    try {
+      await removeMovementById(movement.id)
+      window.alert('Movimiento eliminado')
+    } catch (error) {
+      window.alert(error.message || 'No se pudo eliminar')
+    }
+  }
+
+  const handleViewAudit = async (movement) => {
+    try {
+      const response = await getMovementAudit(movement.id)
+      const history = response.history || []
+      if (history.length === 0) {
+        window.alert('Sin historial para este movimiento')
+        return
+      }
+
+      const message = history
+        .slice(0, 10)
+        .map((entry) => `${entry.action.toUpperCase()} - ${entry.changed_by_username || 'sistema'} - ${new Date(entry.created_at).toLocaleString('es-MX')}`)
+        .join('\n')
+
+      window.alert(message)
+    } catch (error) {
+      window.alert(error.message || 'No se pudo cargar auditoria')
+    }
   }
 
   const SortHeader = ({ column, label }) => (
@@ -175,6 +246,7 @@ export function MovementsTable({ isPrivate }) {
                 <th className="text-left py-3 px-4"><SortHeader column="amount" label="Monto" /></th>
                 <th className="text-left py-3 px-4"><SortHeader column="responsible" label="Responsable" /></th>
                 <th className="text-center py-3 px-4">Estado</th>
+                {(canEdit || canDelete) && <th className="text-center py-3 px-4">Acciones</th>}
               </tr>
             </thead>
             <tbody>
@@ -200,11 +272,30 @@ export function MovementsTable({ isPrivate }) {
                         ✓ {movement.status === 'completed' ? 'Completado' : 'Pendiente'}
                       </span>
                     </td>
+                    {(canEdit || canDelete) && (
+                      <td className="py-4 px-4">
+                        <div className="flex items-center justify-center gap-2">
+                          <Button type="button" size="icon" variant="ghost" onClick={() => handleViewAudit(movement)}>
+                            <History className="w-4 h-4" />
+                          </Button>
+                          {canEdit && (
+                            <Button type="button" size="icon" variant="ghost" onClick={() => handleEdit(movement)}>
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                          )}
+                          {canDelete && (
+                            <Button type="button" size="icon" variant="ghost" onClick={() => handleDelete(movement)}>
+                              <Trash2 className="w-4 h-4 text-[#C62828]" />
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="6" className="text-center py-8 text-[#8D8271]">
+                  <td colSpan={canEdit || canDelete ? "7" : "6"} className="text-center py-8 text-[#8D8271]">
                     No se encontraron movimientos con los filtros aplicados
                   </td>
                 </tr>

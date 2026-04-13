@@ -1,12 +1,16 @@
 import * as React from "react"
-import { Eye, EyeOff, Bell, User, Plus } from "lucide-react"
+import { Eye, EyeOff, User, Plus } from "lucide-react"
 import { Button } from "../components/ui/button"
 import { CalendarEvents } from "../components/dashboard/calendar-events"
 import { AddEventDialog } from "../components/dashboard/add-event-dialog"
+import { NotificationBell } from "../components/common/NotificationBell"
+import { getAuthUser } from "../lib/auth"
 
 export default function Calendario() {
   const [isPrivate, setIsPrivate] = React.useState(true)
   const [isEventOpen, setIsEventOpen] = React.useState(false)
+  const user = getAuthUser()
+  const canManageEvents = user?.role === 'admin'
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] text-slate-900 font-sans">
@@ -41,9 +45,7 @@ export default function Calendario() {
               {isPrivate ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </Button>
 
-            <Button variant="ghost" size="icon" className="text-[#8D8271] hover:text-[#3D3325] hover:bg-[#FAF7F2] rounded-full">
-              <Bell className="w-5 h-5" />
-            </Button>
+            <NotificationBell />
             <div className="h-9 w-9 rounded-full bg-[#EBE5D9] flex items-center justify-center text-[#8D8271] border-2 border-white shadow-sm cursor-pointer hover:opacity-80 transition-opacity">
               <User className="w-5 h-5" />
             </div>
@@ -57,14 +59,16 @@ export default function Calendario() {
             <h2 className="text-3xl font-bold tracking-tight text-[#3D3325] mb-2">Calendario</h2>
             <p className="text-[#8D8271]">Planificación de eventos, fechas de corte y reuniones importantes.</p>
           </div>
-          <Button onClick={() => setIsEventOpen(true)} className="shadow-lg shadow-[#800020]/20 rounded-full gap-2">
-            <Plus className="w-4 h-4" />
-            Nuevo Evento
-          </Button>
+          {canManageEvents && (
+            <Button onClick={() => setIsEventOpen(true)} className="shadow-lg shadow-[#800020]/20 rounded-full gap-2">
+              <Plus className="w-4 h-4" />
+              Nuevo Evento
+            </Button>
+          )}
         </header>
 
         <CalendarEvents />
-        <AddEventDialog isOpen={isEventOpen} onOpenChange={setIsEventOpen} />
+        {canManageEvents && <AddEventDialog isOpen={isEventOpen} onOpenChange={setIsEventOpen} />}
       </main>
     </div>
   )
