@@ -2,18 +2,13 @@ import * as React from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
 import { Button } from "../ui/button"
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, MapPin, User } from "lucide-react"
+import { useFinancialOverview } from "../../hooks/useFinancialOverview"
 
 export function CalendarEvents() {
-  const [currentDate, setCurrentDate] = React.useState(new Date(2026, 2, 1)) // Marzo 2026
+  const { overview } = useFinancialOverview()
+  const [currentDate, setCurrentDate] = React.useState(new Date())
 
-  const events = [
-    { id: 1, date: 5, title: "Pago Proveedores", type: "deadline", time: "14:00", responsible: "Tesorera" },
-    { id: 2, date: 10, title: "Corte de Caja", type: "closing", time: "17:00", responsible: "Admin" },
-    { id: 3, date: 15, title: "Evento Primavera (Recaudación)", type: "event", time: "10:00", location: "Cancha Principal" },
-    { id: 4, date: 20, title: "Fecha Límite - Reportes", type: "deadline", time: "18:00", responsible: "Reportero" },
-    { id: 5, date: 25, title: "Reunión de Junta Directiva", type: "meeting", time: "19:00", location: "Salón de Juntas" },
-    { id: 6, date: 30, title: "Cierre de Mes", type: "closing", time: "23:59", responsible: "Tesorera" },
-  ]
+  const events = overview?.calendarEvents ?? []
 
   const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate()
   const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay()
@@ -35,8 +30,11 @@ export function CalendarEvents() {
 
   const getEventTypeStyles = (type) => {
     switch (type) {
+      case "expense":
       case "deadline":
         return "bg-[#FDF2F2] border-l-4 border-[#C62828]"
+      case "income":
+        return "bg-[#EFF6FF] border-l-4 border-[#2196F3]"
       case "closing":
         return "bg-[#F3F4F6] border-l-4 border-[#800020]"
       case "event":
@@ -50,8 +48,11 @@ export function CalendarEvents() {
 
   const getEventTypeColor = (type) => {
     switch (type) {
+      case "expense":
       case "deadline":
         return "text-[#C62828]"
+      case "income":
+        return "text-[#2196F3]"
       case "closing":
         return "text-[#800020]"
       case "event":
@@ -177,7 +178,7 @@ export function CalendarEvents() {
                   </div>
                 </div>
                 <div className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${getEventTypeColor(event.type)} bg-white/50`}>
-                  {event.date} Mar
+                  {event.date} {currentDate.toLocaleDateString('es-MX', { month: 'short' })}
                 </div>
               </div>
             </div>

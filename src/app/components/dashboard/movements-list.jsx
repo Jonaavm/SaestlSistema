@@ -2,20 +2,28 @@ import * as React from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
 import { ArrowDownLeft, ArrowUpRight, CircleCheck, Search } from "lucide-react"
 import { Button } from "../ui/button"
+import { useFinancialOverview } from "../../hooks/useFinancialOverview"
 
 export function MovementsList({ isPrivate }) {
-  const transactions = [
-    { id: 1, type: "income", description: "Inscripciones Semestre", amount: 25000, date: "22 Mar 2026", status: "completed" },
-    { id: 2, type: "expense", description: "Pago a Proveedores - Evento Primavera", amount: 8500, date: "20 Mar 2026", status: "completed" },
-    { id: 3, type: "income", description: "Venta de Mercancía Oficial", amount: 4200, date: "18 Mar 2026", status: "completed" },
-    { id: 4, type: "expense", description: "Material de Oficina y Limpieza", amount: 1200, date: "15 Mar 2026", status: "completed" },
-    { id: 5, type: "expense", description: "Servicios de Hosting Anual", amount: 3500, date: "10 Mar 2026", status: "completed" },
-  ]
+  const { overview } = useFinancialOverview()
+  const transactions = overview?.recentMovements?.map((movement) => ({
+    id: movement.id,
+    type: movement.type,
+    description: movement.concept,
+    amount: movement.amount,
+    date: movement.date,
+    status: movement.status,
+  })) ?? []
 
   const formatAmount = (amount, type) => {
     if (isPrivate) return "****"
     const formatted = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(amount)
     return type === "income" ? `+${formatted}` : `-${formatted}`
+  }
+
+  const formatDate = (dateString) => {
+    const parsed = new Date(dateString)
+    return Number.isNaN(parsed.getTime()) ? String(dateString) : parsed.toLocaleDateString('es-MX')
   }
 
   return (
@@ -45,7 +53,7 @@ export function MovementsList({ isPrivate }) {
                 <div>
                   <h4 className="font-semibold text-[#3D3325]">{txn.description}</h4>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs text-[#8D8271]">{txn.date}</span>
+                    <span className="text-xs text-[#8D8271]">{formatDate(txn.date)}</span>
                     <span className="w-1 h-1 rounded-full bg-[#EBE5D9]"></span>
                     <span className="flex items-center text-xs text-[#2E7D32] font-medium">
                       <CircleCheck className="h-3 w-3 mr-1" /> Completado

@@ -1,15 +1,7 @@
 import * as React from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts"
-
-const data = [
-  { name: "Ene", income: 12000, expense: 4000 },
-  { name: "Feb", income: 18000, expense: 7000 },
-  { name: "Mar", income: 15000, expense: 5000 },
-  { name: "Abr", income: 24000, expense: 8000 },
-  { name: "May", income: 22000, expense: 9000 },
-  { name: "Jun", income: 30000, expense: 12000 },
-]
+import { useFinancialOverview } from "../../hooks/useFinancialOverview"
 
 const CustomTooltip = ({ active, payload, label, isPrivate }) => {
   if (active && payload && payload.length) {
@@ -34,6 +26,9 @@ const CustomTooltip = ({ active, payload, label, isPrivate }) => {
 }
 
 export function AbstractChart({ isPrivate }) {
+  const { overview } = useFinancialOverview()
+  const data = overview?.monthlyData ?? []
+
   return (
     <Card className="col-span-1 lg:col-span-2 bg-white">
       <CardHeader>

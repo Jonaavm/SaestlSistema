@@ -5,9 +5,11 @@ import { KPICards } from "../components/dashboard/kpi-cards"
 import { AbstractChart } from "../components/dashboard/abstract-chart"
 import { ClosingCalendar } from "../components/dashboard/closing-calendar"
 import { MovementsList } from "../components/dashboard/movements-list"
+import { AddMovementDialog } from "../components/dashboard/add-movement-dialog"
 
 export default function Dashboard() {
   const [isPrivate, setIsPrivate] = React.useState(true)
+  const [isMovementOpen, setIsMovementOpen] = React.useState(false)
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] text-slate-900 font-sans">
@@ -58,7 +60,7 @@ export default function Dashboard() {
             <h2 className="text-3xl font-bold tracking-tight text-[#3D3325] mb-2">Panel Principal</h2>
             <p className="text-[#8D8271]">Un resumen financiero de las actividades de la sociedad.</p>
           </div>
-          <Button className="shadow-lg shadow-[#800020]/20 rounded-full">
+          <Button onClick={() => setIsMovementOpen(true)} className="shadow-lg shadow-[#800020]/20 rounded-full">
             + Nuevo Movimiento
           </Button>
         </header>
@@ -73,6 +75,8 @@ export default function Dashboard() {
         <div className="grid grid-cols-1">
           <MovementsList isPrivate={isPrivate} />
         </div>
+
+        <AddMovementDialog isOpen={isMovementOpen} onOpenChange={setIsMovementOpen} />
       </main>
     </div>
   )

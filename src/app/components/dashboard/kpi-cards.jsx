@@ -1,11 +1,14 @@
 import * as React from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
 import { ArrowUpRight, ArrowDownRight, Wallet } from "lucide-react"
+import { useFinancialOverview } from "../../hooks/useFinancialOverview"
 
 export function KPICards({ isPrivate }) {
-  const kpis = [
-    { title: "Ingresos (Mes)", amount: 45000.50, trend: +8.2, type: "income" },
-    { title: "Egresos (Mes)", amount: 15320.00, trend: -4.1, type: "expense" },
+  const { overview } = useFinancialOverview()
+  const kpis = overview?.kpis ?? [
+    { title: "Balance Total", amount: 0, trend: 0, type: "balance" },
+    { title: "Ingresos (Mes)", amount: 0, trend: 0, type: "income" },
+    { title: "Egresos (Mes)", amount: 0, trend: 0, type: "expense" },
   ]
 
   const formatAmount = (amount) => {

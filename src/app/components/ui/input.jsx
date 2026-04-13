@@ -15,7 +15,7 @@ function Input({ className, type, ...props }) {
       )}
       {...props}
     />
-  );
+  )
 }
 
 export { Input };

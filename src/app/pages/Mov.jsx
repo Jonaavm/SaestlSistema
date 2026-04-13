@@ -1,11 +1,13 @@
 import * as React from "react"
-import { Eye, EyeOff, Bell, User, Plus } from "lucide-react"
+import { Eye, EyeOff, Bell, Plus, User } from "lucide-react"
 import { Button } from "../components/ui/button"
 import { KPICards } from "../components/dashboard/kpi-cards"
 import { MovementsTable } from "../components/dashboard/movements-table"
+import { AddMovementDialog } from "../components/dashboard/add-movement-dialog"
 
 export default function Movimientos() {
   const [isPrivate, setIsPrivate] = React.useState(true)
+  const [isMovementOpen, setIsMovementOpen] = React.useState(false)
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] text-slate-900 font-sans">
@@ -56,7 +58,7 @@ export default function Movimientos() {
             <h2 className="text-3xl font-bold tracking-tight text-[#3D3325] mb-2">Movimientos</h2>
             <p className="text-[#8D8271]">Registro detallado de ingresos y egresos con filtros avanzados.</p>
           </div>
-          <Button className="shadow-lg shadow-[#800020]/20 rounded-full gap-2">
+          <Button onClick={() => setIsMovementOpen(true)} className="shadow-lg shadow-[#800020]/20 rounded-full gap-2">
             <Plus className="w-4 h-4" />
             Nuevo Movimiento
           </Button>
@@ -65,6 +67,8 @@ export default function Movimientos() {
         <KPICards isPrivate={isPrivate} />
 
         <MovementsTable isPrivate={isPrivate} />
+
+        <AddMovementDialog isOpen={isMovementOpen} onOpenChange={setIsMovementOpen} />
       </main>
     </div>
   )

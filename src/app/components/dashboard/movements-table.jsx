@@ -4,18 +4,11 @@ import { Button } from "../ui/button"
 import { Input } from "../ui/input"
 import { ArrowDownLeft, ArrowUpRight, Search, Download, ChevronUp, ChevronDown } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
+import { useFinancialOverview } from "../../hooks/useFinancialOverview"
 
 export function MovementsTable({ isPrivate }) {
-  const [movements, setMovements] = React.useState([
-    { id: 1, date: "2026-03-22", concept: "Inscripciones Semestre", category: "Ingresos", amount: 25000, responsible: "Tesorera", type: "income", status: "completed" },
-    { id: 2, date: "2026-03-20", concept: "Pago Proveedores - Evento Primavera", category: "Eventos", amount: 8500, responsible: "Coordinador Eventos", type: "expense", status: "completed" },
-    { id: 3, date: "2026-03-18", concept: "Venta Mercancía Oficial", category: "Ingresos", amount: 4200, responsible: "Tesorera", type: "income", status: "completed" },
-    { id: 4, date: "2026-03-15", concept: "Material de Oficina", category: "Papelería", amount: 1200, responsible: "Administrador", type: "expense", status: "completed" },
-    { id: 5, date: "2026-03-10", concept: "Hosting Web Anual", category: "Tecnología", amount: 3500, responsible: "Tech Lead", type: "expense", status: "completed" },
-    { id: 6, date: "2026-03-08", concept: "Donación Recibida", category: "Donaciones", amount: 15000, responsible: "Presidente", type: "income", status: "completed" },
-    { id: 7, date: "2026-03-05", concept: "Banners y Publicidad", category: "Papelería", amount: 750, responsible: "Marketing", type: "expense", status: "completed" },
-    { id: 8, date: "2026-03-01", concept: "Cuota Mensual Miembros", category: "Ingresos", amount: 12000, responsible: "Tesorera", type: "income", status: "completed" },
-  ])
+  const { overview } = useFinancialOverview()
+  const movements = overview?.detailedMovements ?? []
 
   const [filters, setFilters] = React.useState({
     search: "",
@@ -28,7 +21,7 @@ export function MovementsTable({ isPrivate }) {
   const [sortColumn, setSortColumn] = React.useState("date")
   const [sortDirection, setSortDirection] = React.useState("desc")
 
-  const categories = ["Ingresos", "Eventos", "Papelería", "Tecnología", "Donaciones", "Otros"]
+  const categories = [...new Set(movements.map((movement) => movement.category).filter(Boolean))]
 
   const handleSort = (column) => {
     if (sortColumn === column) {
@@ -65,7 +58,8 @@ export function MovementsTable({ isPrivate }) {
   }
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('es-MX')
+    const parsed = new Date(dateString)
+    return Number.isNaN(parsed.getTime()) ? String(dateString) : parsed.toLocaleDateString('es-MX')
   }
 
   const SortHeader = ({ column, label }) => (

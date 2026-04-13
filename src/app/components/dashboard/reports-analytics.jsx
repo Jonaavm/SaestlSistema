@@ -4,44 +4,26 @@ import { Button } from "../ui/button"
 import { Input } from "../ui/input"
 import { ResponsiveContainer, PieChart, Pie, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell } from "recharts"
 import { Calendar, TrendingUp } from "lucide-react"
+import { useFinancialOverview } from "../../hooks/useFinancialOverview"
 
 export function ReportsAnalytics({ isPrivate }) {
+  const { overview } = useFinancialOverview()
   const [dateRange, setDateRange] = React.useState({
     from: "2026-03-01",
     to: "2026-03-31",
   })
 
-  // Datos por categoría de gastos
-  const expensesByCategory = [
-    { name: "Eventos", value: 8500 },
-    { name: "Papelería", value: 1950 },
-    { name: "Tecnología", value: 3500 },
-    { name: "Otros", value: 1200 },
-  ]
-
-  // Datos de ingresos por tipo
-  const incomeByType = [
-    { name: "Inscripciones", value: 25000 },
-    { name: "Ventas", value: 4200 },
-    { name: "Donaciones", value: 15000 },
-    { name: "Cuotas", value: 12000 },
-  ]
-
-  // Datos mensuales
-  const monthlyData = [
-    { month: "Ene", income: 12000, expense: 4000, profit: 8000 },
-    { month: "Feb", income: 18000, expense: 7000, profit: 11000 },
-    { month: "Mar", income: 56200, expense: 14400, profit: 41800 },
-    { month: "Abr", income: 24000, expense: 8000, profit: 16000 },
-  ]
-
-  // Estadísticas
-  const stats = [
-    { label: "Ingresos Totales", value: 56200, color: "#2E7D32" },
-    { label: "Egresos Totales", value: 14400, color: "#C62828" },
-    { label: "Ganancia Neta", value: 41800, color: "#800020" },
-    { label: "Promedio Diario", value: 1348, color: "#D4AF37" },
-  ]
+  const expensesByCategory = overview?.expensesByCategory ?? []
+  const incomeByType = overview?.incomeByType ?? []
+  const monthlyData = overview?.monthlyData ?? []
+  const stats = overview
+    ? [
+        { label: "Ingresos Totales", value: overview.summary.totalIncome, color: "#2E7D32" },
+        { label: "Egresos Totales", value: overview.summary.totalExpense, color: "#C62828" },
+        { label: "Ganancia Neta", value: overview.summary.balance, color: "#800020" },
+        { label: "Promedio Diario", value: Math.round(overview.summary.balance / 30), color: "#D4AF37" },
+      ]
+    : []
 
   const COLORS = ["#D4AF37", "#800020", "#2E7D32", "#8D8271"]
   const INCOME_COLORS = ["#D4AF37", "#FFA726", "#EF5350", "#78909C"]

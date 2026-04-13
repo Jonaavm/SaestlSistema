@@ -5,8 +5,12 @@ import { Input } from "../ui/input"
 import { Label } from "../ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
 import { Textarea } from "../ui/textarea"
+import { useFinancialOverview } from "../../hooks/useFinancialOverview"
 
 export function AddMovementDialog({ isOpen, onOpenChange }) {
+  const { addMovement } = useFinancialOverview()
+  const [isSaving, setIsSaving] = React.useState(false)
+  const [error, setError] = React.useState("")
   const [formData, setFormData] = React.useState({
     date: new Date().toISOString().split('T')[0],
     concept: "",
@@ -24,17 +28,26 @@ export function AddMovementDialog({ isOpen, onOpenChange }) {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    console.log("Movimiento añadido:", formData)
-    setFormData({
-      date: new Date().toISOString().split('T')[0],
-      concept: "",
-      type: "expense",
-      category: "",
-      amount: "",
-      responsible: "",
-      notes: "",
-    })
-    onOpenChange(false)
+    setIsSaving(true)
+    setError("")
+
+    addMovement(formData)
+      .then(() => {
+        setFormData({
+          date: new Date().toISOString().split('T')[0],
+          concept: "",
+          type: "expense",
+          category: "",
+          amount: "",
+          responsible: "",
+          notes: "",
+        })
+        onOpenChange(false)
+      })
+      .catch((requestError) => {
+        setError(requestError.message || "No se pudo guardar el movimiento")
+      })
+      .finally(() => setIsSaving(false))
   }
 
   return (
@@ -45,6 +58,12 @@ export function AddMovementDialog({ isOpen, onOpenChange }) {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
+          {error && (
+            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
           {/* Tipo y Fecha */}
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -147,9 +166,10 @@ export function AddMovementDialog({ isOpen, onOpenChange }) {
             </Button>
             <Button
               type="submit"
+              disabled={isSaving}
               className="shadow-lg shadow-[#800020]/20 rounded-full"
             >
-              Registrar Movimiento
+              {isSaving ? "Guardando..." : "Registrar Movimiento"}
             </Button>
           </DialogFooter>
         </form>

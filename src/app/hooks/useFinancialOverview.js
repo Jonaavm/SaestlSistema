@@ -1,0 +1,45 @@
+import * as React from 'react'
+import { createMovement, getOverview } from '../lib/financialApi'
+
+export function useFinancialOverview() {
+  const [overview, setOverview] = React.useState(null)
+  const [loading, setLoading] = React.useState(true)
+  const [error, setError] = React.useState(null)
+
+  const refresh = React.useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const data = await getOverview()
+      setOverview(data)
+    } catch (requestError) {
+      setError(requestError)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  React.useEffect(() => {
+    refresh()
+  }, [refresh])
+
+  React.useEffect(() => {
+    const handleUpdate = () => refresh()
+    window.addEventListener('saestl:movements-updated', handleUpdate)
+    return () => window.removeEventListener('saestl:movements-updated', handleUpdate)
+  }, [refresh])
+
+  const addMovement = React.useCallback(async (movement) => {
+    const response = await createMovement(movement)
+    window.dispatchEvent(new Event('saestl:movements-updated'))
+    return response
+  }, [])
+
+  return {
+    overview,
+    loading,
+    error,
+    refresh,
+    addMovement,
+  }
+}
